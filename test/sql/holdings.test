@@ -1,0 +1,51 @@
+# name: test/sql/holdings.test
+# description: spdr.holdings base table — fund_ticker partition (pushdown), current holdings only.
+# group: [sql]
+
+require-env VGI_TEST_WORKER
+
+statement ok
+ATTACH 'spdr' AS sp (TYPE vgi, LOCATION '${VGI_TEST_WORKER}');
+
+statement ok
+SET search_path='sp.main';
+
+# --- Schema: DESCRIBE binds only (no network). `holdings` is a base TABLE. ---
+
+query T
+SELECT string_agg(column_name, ',') FROM (DESCRIBE SELECT * FROM sp.holdings WHERE fund_ticker = 'SPY');
+----
+fund_ticker,as_of_date,name,ticker,identifier,sedol,figi,weight_percent,sector,shares_held,coupon_percent,par_value,market_value,maturity_date,local_currency
+
+query T
+SELECT column_type FROM (DESCRIBE SELECT * FROM sp.holdings WHERE fund_ticker = 'SPY') WHERE column_name = 'as_of_date';
+----
+DATE
+
+# --- Live invariants (hit SSGA). ---
+
+# Partition pushdown: WHERE fund_ticker = 'SPY' fetches that fund's holdings, weight-descending.
+query I
+SELECT (count(*) > 100 AND max(weight_percent) > 0 AND bool_and(fund_ticker = 'SPY'))::INT
+FROM sp.holdings WHERE fund_ticker = 'SPY';
+----
+1
+
+# Multiple partitions at once: fund_ticker IN (...) fans out to two funds.
+query I
+SELECT (count(DISTINCT fund_ticker) = 2)::INT FROM sp.holdings WHERE fund_ticker IN ('SPY', 'BIL');
+----
+1
+
+# An unfiltered scan is allowed — it streams EVERY fund's holdings (one partition per fund).
+# LIMIT short-circuits the stream after the first partition, so this stays cheap.
+query I
+SELECT (count(*) >= 1)::INT FROM (SELECT * FROM sp.holdings LIMIT 5);
+----
+1
+
+# The backing scan function also works directly (pushdown).
+query I
+SELECT (count(*) > 100)::INT FROM sp.holdings_scan() WHERE fund_ticker = 'SPY';
+----
+1

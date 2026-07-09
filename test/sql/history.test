@@ -1,0 +1,42 @@
+# name: test/sql/history.test
+# description: spdr nav_history — schema + live invariants.
+# group: [sql]
+
+require-env VGI_TEST_WORKER
+
+statement ok
+ATTACH 'spdr' AS sp (TYPE vgi, LOCATION '${VGI_TEST_WORKER}');
+
+statement ok
+SET search_path='sp.main';
+
+# --- Schema (bind-only, deterministic). ---
+
+query T
+SELECT column_type FROM (DESCRIBE SELECT * FROM sp.nav_history('SPY')) WHERE column_name = 'nav';
+----
+DOUBLE
+
+query T
+SELECT column_type FROM (DESCRIBE SELECT * FROM sp.nav_history('SPY')) WHERE column_name = 'as_of_date';
+----
+DATE
+
+# --- Live invariants (hit SSGA). ---
+
+# NAV history goes back many years (thousands of daily rows) with positive NAV.
+query I
+SELECT (count(*) > 1000 AND min(nav) > 0)::INT FROM sp.nav_history('SPY');
+----
+1
+
+# start_date (a DATE) bounds the NAV series (far fewer rows than the full unbounded history).
+query I
+SELECT (count(*) > 0 AND min(as_of_date) >= DATE '2026-01-01')::INT FROM sp.nav_history('SPY', start_date := DATE '2026-01-01');
+----
+1
+
+# A non-date value for the DATE argument is a bind error (SQL enforces the type).
+statement error
+SELECT * FROM sp.nav_history('SPY', start_date := 'Jan 2026');
+----
