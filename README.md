@@ -61,6 +61,30 @@ ATTACH 'spdr' AS spdr (TYPE vgi, LOCATION '/path/to/vgi-etf-spdr/bin/vgi-etf-spd
 
 `bin/vgi-etf-spdr-worker` is a small wrapper that launches `src/worker.ts` under Bun.
 
+### Option C — container image (ghcr.io)
+
+A multi-arch (linux/amd64 + linux/arm64), cosign-signed image is published to
+`ghcr.io/query-farm/vgi-etf-spdr` on every release — no local Bun or worker binary needed.
+Attach it directly over the VGI container transport:
+
+```sql
+LOAD vgi;
+ATTACH 'spdr' AS spdr (TYPE vgi, LOCATION 'oci://ghcr.io/query-farm/vgi-etf-spdr:latest');
+```
+
+Or run the HTTP transport yourself and attach that:
+
+```bash
+docker run --rm -p 8000:8000 ghcr.io/query-farm/vgi-etf-spdr:latest   # serves /health + the VGI RPC on :8000
+```
+
+```sql
+LOAD vgi;
+ATTACH 'spdr' AS spdr (TYPE vgi, LOCATION 'http://localhost:8000');
+```
+
+`:latest` always tracks the newest release.
+
 ## Usage
 
 ### products — the fund catalog (a base table)
