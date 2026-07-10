@@ -183,7 +183,7 @@ const CATALOG_TAGS: Record<string, string> = {
   ]),
   // Agent-suitability suite (catalog only). Each task carries a deterministic check_sql that
   // asserts specific ground truth; reference_sql is deliberately omitted (live data). One task
-  // per callable surface (products, holdings, holdings_scan, nav_history) satisfies VGI520.
+  // per callable surface (products, holdings, nav_history) satisfies VGI520.
   "vgi.agent_test_tasks": JSON.stringify([
     {
       name: "spy_exists",
@@ -204,10 +204,10 @@ const CATALOG_TAGS: Record<string, string> = {
       success_criteria: "The answer names SPY's top holding by weight, obtained from the holdings table.",
     },
     {
-      name: "spy_holdings_scan",
-      prompt: "Using the holdings backing scan, list a few SPY constituents by weight.",
-      check_sql: "SELECT count(*) > 0 FROM spdr.main.holdings_scan() WHERE fund_ticker = 'SPY'",
-      success_criteria: "The answer returns SPY constituents via holdings_scan() filtered by fund_ticker.",
+      name: "spy_bil_position_counts",
+      prompt: "How many distinct holdings does the SPDR S&P 500 ETF Trust (SPY) currently have, and does it hold more positions than the SPDR Bloomberg 1-3 Month T-Bill ETF (BIL)?",
+      check_sql: "SELECT (SELECT count(*) FROM spdr.main.holdings WHERE fund_ticker = 'SPY') > (SELECT count(*) FROM spdr.main.holdings WHERE fund_ticker = 'BIL')",
+      success_criteria: "The answer reports SPY's holding count and correctly states SPY holds more positions than BIL, using the holdings table filtered by fund_ticker.",
     },
     {
       name: "spy_recent_nav",
@@ -293,8 +293,13 @@ export function makeCatalog(
             name: "holdings",
             function: holdingsScan,
             arguments: new Arguments([], new Map()),
-            // fund_ticker is always populated (the scan tags every row with its fund).
-            notNull: ["fund_ticker"],
+            // fund_ticker is always populated (the scan tags every row with its fund); name is
+            // always populated too (the parser ends the fund's rows at the first blank name).
+            notNull: ["fund_ticker", "name"],
+            // A holding is identified by its fund plus the constituent's name: within one fund's
+            // current file each constituent appears on one line, so (fund_ticker, name) is the
+            // natural key. Advisory (like products.isin) — not enforced on the streaming scan.
+            primaryKey: [["fund_ticker", "name"]],
             // Hive partition key: fund_ticker. A WHERE fund_ticker = … / IN (…) filter is pushed
             // down to fetch just those funds; an unfiltered scan streams every fund (all partitions).
             // SSGA publishes current holdings only, so there is NO time travel.

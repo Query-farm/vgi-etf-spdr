@@ -2,7 +2,8 @@
 
 A VGI (DuckDB) worker exposing SPDR / State Street (SSGA) US ETF data as two base **tables** —
 `products` (the catalog) and `holdings` (hive-partitioned) — plus one table **function**,
-`nav_history` (and the listed `holdings_scan` backing the holdings table). TypeScript, runs on
+`nav_history` (the holdings table's backing scan is also listed under the same name, `holdings`,
+so DuckDB can push the fund_ticker filter into it). TypeScript, runs on
 Bun, built on `@query-farm/vgi` (the TS SDK). Keyless — no secret type, no auth. Modeled on the
 sibling `vgi-etf-ishares` worker; the KEY DIFFERENCE is that SSGA publishes **current holdings only**,
 so `holdings` has NO time travel.
@@ -20,8 +21,11 @@ its docs on `tags`/`comment`/`columnComments`. Two INDEPENDENT layers matter:
 `products`: backing `productsScan` is **registered but NOT listed** → exposed only as the table.
 `holdings`: backing `holdingsScan` MUST be **listed** (`functions: [...functions, holdingsScan]`)
 — an unlisted backing scan gets no `pushdown_filters` (the extension can't see its
-`filter_pushdown` capability), so the `fund_ticker` partition filter never reaches it. Hence a
-visible `holdings_scan()` is unavoidable; VGI311 is waived in `vgi-lint.toml`.
+`filter_pushdown` capability), so the `fund_ticker` partition filter never reaches it (verified:
+unlisting drops the `Filters: fund_ticker=…` line from the plan and the estimate jumps to the
+whole-table ~90k rows). The scan is therefore listed but named **`holdings`, the same as its base
+table** — so it satisfies VGI311 (a table of that name scans it) and reads to an agent as one
+`holdings` surface, not a second `holdings_scan()` object. No `vgi-lint.toml` waiver is needed.
 
 ## `holdings` — hive-partitioned by `fund_ticker`, CURRENT holdings only (no time travel)
 
@@ -44,8 +48,11 @@ streams every fund** (one partition per fund). Mechanics:
 - **`fund_ticker` is a SEPARATE column from `ticker`** — `ticker` is the CONSTITUENT's own ticker
   (present for equity funds, null for bond/loan funds); `fund_ticker` is the fund's ticker,
   constant per fund. The scan tags every row with the requested fund ticker, upper-cased.
-- Constraints: `products` advisory PK `[isin]`, `holdings` `notNull [fund_ticker]`. No cross-table
-  FK (identifier columns recur with different meanings). VGI311/807/809 waived with reasons.
+- Constraints: `products` advisory PK `[isin]`; `holdings` advisory composite PK
+  `[fund_ticker, name]` with `notNull [fund_ticker, name]` (a constituent is identified by its fund
+  plus its name; both are always populated). No cross-table FK (identifier columns recur with
+  different meanings). No `vgi-lint.toml` rule waivers — VGI311 is met by naming the listed scan
+  `holdings` (matching the table), VGI807 by the composite PK.
 
 ## Holdings/NAV are `.xlsx` — the one extra dependency
 
@@ -86,7 +93,7 @@ sorts by `weight_percent` DESC (NULLS last) so `... LIMIT n` returns the top hol
   in non-UTC sessions). Percent columns carry a `_percent` suffix and hold **percent points**
   (SSGA's raw values: `weight_percent` 7.38 = 7.38%, `expense_ratio_percent` 0.09 = 0.09%).
 - **`src/functions.ts`** — three `defineTableFunction`s: `makeProductsScan` (unlisted products
-  backing scan), `makeHoldingsScan` (`holdings_scan`, LISTED, filterPushdown, SINGLE_VALUE
+  backing scan), `makeHoldingsScan` (named `holdings`, LISTED, filterPushdown, SINGLE_VALUE
   partitions, queue/BoundStorage streaming), and `makeNavHistoryFunction`. Each `make*` takes the
   whole `SpdrClient` (`{get, getBytes}`) for uniformity.
 - **`src/catalog.ts` / `src/worker.ts`** — catalog descriptor (no `secretTypes`) and the entry
@@ -159,8 +166,9 @@ Typecheck must be a `bash scripts/typecheck.sh` file (not an inline package.json
 - vgi-lint rules to keep satisfied: catalog/schema descriptions must NOT enumerate the worker's own
   functions (VGI173); numeric column comments should state units (VGI131 — e.g. "per share in
   USD", "percent points"); argument docs must NOT restate the data type (VGI313); every function
-  needs an agent test task (VGI520 — products/holdings/holdings_scan/nav_history are covered in
-  `catalog.ts` `vgi.agent_test_tasks`).
+  needs an agent test task (VGI520 — products/holdings/nav_history are covered in
+  `catalog.ts` `vgi.agent_test_tasks`); every listed function/table needs a primary key (VGI807 —
+  products keyed by `isin`, holdings by the composite `(fund_ticker, name)`).
 - Don't add a secret type; this worker is keyless by design.
 - Keep the `holdings` current-only contract: do NOT add `supportsTimeTravel` or an as-of arg.
 

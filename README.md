@@ -155,8 +155,9 @@ funds fill `figi`. Rows come back **weight-descending**. `as_of_date` (DATE) is 
 file's date — SSGA publishes **current holdings only**, so there is no historical time travel.
 Join `holdings.fund_ticker` to `products.ticker` for fund-level facts.
 
-> A backing `holdings_scan()` function is also exposed (it's what the table scans, and it's what
-> lets DuckDB push the `fund_ticker` filter) — prefer the `holdings` table.
+> The `holdings` scan is also listed as a table function of the **same name** (it's what the table
+> scans, and being listed is what lets DuckDB push the `fund_ticker` filter into it). Query it the
+> normal way, as the `holdings` table.
 
 ### nav_history — daily NAV series
 

@@ -44,8 +44,8 @@ SELECT (count(*) >= 1)::INT FROM (SELECT * FROM sp.holdings LIMIT 5);
 ----
 1
 
-# The backing scan function also works directly (pushdown).
+# The listed scan function shares the holdings table's name and works directly (pushdown).
 query I
-SELECT (count(*) > 100)::INT FROM sp.holdings_scan() WHERE fund_ticker = 'SPY';
+SELECT (count(*) > 100)::INT FROM sp.holdings() WHERE fund_ticker = 'SPY';
 ----
 1

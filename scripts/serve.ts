@@ -37,7 +37,8 @@ const REPO = "https://github.com/Query-farm/vgi-etf-spdr";
 const client = makeSpdrClient();
 const functions = [makeNavHistoryFunction(client)];
 // products is a base table backed by an (unlisted) zero-arg scan; holdings is a base table
-// backed by a LISTED scan (holdings_scan) so the extension can push the ticker filter into it.
+// backed by a LISTED scan (named `holdings`, matching the table) so the extension can push the
+// ticker filter into it.
 const productsScan = makeProductsScan(client);
 const holdingsScan = makeHoldingsScan(client);
 

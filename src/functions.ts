@@ -164,16 +164,20 @@ export function makeProductsScan(client: SpdrClient) {
 export function makeHoldingsScan(client: SpdrClient) {
   const schema = holdingsSchema();
   return defineTableFunction<Record<string, never>, Record<string, never>>({
-    name: "holdings_scan",
+    name: "holdings",
     description:
-      "Backing scan for the holdings table — prefer the `holdings` table. Detailed fund " +
-      "holdings, hive-partitioned by fund_ticker: filter WHERE fund_ticker = 'SPY' (or " +
-      "fund_ticker IN (…)) for specific funds, or scan with no filter to stream every fund's " +
-      "holdings. weight_percent is in percent points; bond funds fill coupon/maturity/par_value.",
+      "Detailed current fund holdings, hive-partitioned by fund_ticker. This is the scan behind " +
+      "the `holdings` table, which shares this name, so query the `holdings` table directly. " +
+      "Filter on fund_ticker for specific funds, or scan with no filter to stream every fund's " +
+      "holdings. weight_percent is in percent points (7.38 = 7.38%); bond funds fill " +
+      "coupon/maturity/par_value while equity funds fill ticker/sector/shares_held.",
     args: {},
-    // filterPushdown MUST be declared AND this function MUST be listed in the catalog so the DuckDB
-    // extension can discover the capability and push the fund_ticker filter into the scan. Each
-    // fund is one SINGLE_VALUE partition (fund_ticker is the hive partition key).
+    // The scan is named `holdings` to MATCH its base table (catalog.ts `tables`): the same object
+    // is both the browsable `holdings` table and a LISTED table function. It MUST be listed (and
+    // declare filterPushdown) so the DuckDB extension can discover the pushdown capability and push
+    // the fund_ticker filter into the scan — an UNLISTED scan gets no pushed filter (verified: the
+    // filter vanishes from the plan and every query streams all ~180 funds). Each fund is one
+    // SINGLE_VALUE partition (fund_ticker is the hive partition key).
     filterPushdown: true,
     partitionKind: "SINGLE_VALUE_PARTITIONS",
     maxWorkers: DEFAULT_MAX_WORKERS,
@@ -222,25 +226,27 @@ export function makeHoldingsScan(client: SpdrClient) {
       }
     },
     examples: [
-      { sql: "SELECT name, weight_percent FROM spdr.main.holdings_scan() WHERE fund_ticker = 'SPY' ORDER BY weight_percent DESC LIMIT 10", description: "Top 10 holdings of SPY via the backing scan" },
-      { sql: "SELECT fund_ticker, count(*) FROM spdr.main.holdings_scan() WHERE fund_ticker IN ('SPY', 'BIL') GROUP BY fund_ticker", description: "Two partitions at once (fan-out)" },
+      { sql: "SELECT name, ticker, weight_percent FROM spdr.main.holdings WHERE fund_ticker = 'SPY' ORDER BY weight_percent DESC LIMIT 10", description: "Top 10 holdings of SPY by weight" },
+      { sql: "SELECT fund_ticker, count(*) AS positions, round(sum(weight_percent), 2) AS total_weight FROM spdr.main.holdings WHERE fund_ticker IN ('SPY', 'BIL') GROUP BY fund_ticker ORDER BY positions DESC", description: "Position count and summed weight for two funds (partition fan-out)" },
     ],
     tags: {
       "vgi.category": "holdings",
       "vgi.doc_llm":
-        "The backing scan for the `holdings` table. Prefer querying the `holdings` table. " +
-        "Hive-partitioned by fund_ticker (the fund's ticker, distinct from the constituent " +
+        "Detailed current fund holdings — the scan behind the `holdings` table, which shares this " +
+        "name, so query the `holdings` table directly. Hive-partitioned by fund_ticker (the fund's " +
+        "ticker, distinct from the constituent " +
         "`ticker` column): filter WHERE fund_ticker = '…' (or fund_ticker IN (…)) for specific " +
         "funds, or scan with no filter to stream every fund (~180 partitions — slow). " +
         "weight_percent is in percent points (7.38 = 7.38%); bond funds fill " +
         "coupon/maturity/par_value/market_value while equity funds fill ticker/sector/shares_held. " +
         "SSGA publishes current holdings only, so there is no historical as-of date.",
       "vgi.doc_md":
-        "## holdings_scan\n\n" +
-        "The backing scan for the **`holdings` table** — prefer the table. Hive-partitioned by " +
-        "`fund_ticker`: filter `WHERE fund_ticker = 'SPY'` for one fund, or scan with no filter to " +
-        "stream every fund (see the example queries). `fund_ticker` is distinct from the " +
-        "constituent `ticker` column.",
+        "## holdings\n\n" +
+        "Detailed current fund holdings as a **hive-partitioned table** (this scan and the " +
+        "`holdings` table share the name — query the `holdings` table directly). Partitioned by " +
+        "`fund_ticker`: filter to one fund with `fund_ticker`, or scan with no filter to stream " +
+        "every fund (see the example queries). `fund_ticker` is distinct from the constituent " +
+        "`ticker` column. `weight_percent` is in percent points (7.38 = 7.38%).",
       "vgi.result_columns_schema": resultColumnsSchema(holdingsSchema(), HOLDINGS_SCAN_DESCS),
     },
   });
