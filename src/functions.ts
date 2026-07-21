@@ -247,6 +247,12 @@ export function makeHoldingsScan(client: SpdrClient) {
         "`fund_ticker`: filter to one fund with `fund_ticker`, or scan with no filter to stream " +
         "every fund (see the example queries). `fund_ticker` is distinct from the constituent " +
         "`ticker` column. `weight_percent` is in percent points (7.38 = 7.38%).",
+      // Mirror of `examples` above as described JSON — the native duckdb_functions().examples
+      // carrier drops descriptions, so vgi-lint (VGI515) reads them from this tag instead.
+      "vgi.example_queries": JSON.stringify([
+        { description: "Top 10 holdings of SPY by weight", sql: "SELECT name, ticker, weight_percent FROM spdr.main.holdings WHERE fund_ticker = 'SPY' ORDER BY weight_percent DESC LIMIT 10" },
+        { description: "Position count and summed weight for two funds (partition fan-out)", sql: "SELECT fund_ticker, count(*) AS positions, round(sum(weight_percent), 2) AS total_weight FROM spdr.main.holdings WHERE fund_ticker IN ('SPY', 'BIL') GROUP BY fund_ticker ORDER BY positions DESC" },
+      ]),
       "vgi.result_columns_schema": resultColumnsSchema(holdingsSchema(), HOLDINGS_SCAN_DESCS),
     },
   });
@@ -318,6 +324,12 @@ export function makeNavHistoryFunction(client: SpdrClient) {
         "Daily NAV history back to inception, one row per business day. This is **fund NAV**, not a " +
         "market-price candle series. Old funds return thousands of rows — bound with " +
         "`start_date`/`end_date` (see the example queries).",
+      // Mirror of `examples` above as described JSON — the native duckdb_functions().examples
+      // carrier drops descriptions, so vgi-lint (VGI515) reads them from this tag instead.
+      "vgi.example_queries": JSON.stringify([
+        { description: "SPY NAV since the start of the year", sql: "SELECT as_of_date, nav FROM spdr.main.nav_history('SPY', start_date := DATE '2026-01-01') ORDER BY as_of_date DESC" },
+        { description: "Recent daily total net assets for SPY", sql: "SELECT as_of_date, total_net_assets FROM spdr.main.nav_history('SPY') ORDER BY as_of_date DESC LIMIT 5" },
+      ]),
       "vgi.result_columns_schema": resultColumnsSchema(navHistorySchema(), NAV_HISTORY_DESCS),
     },
   });
