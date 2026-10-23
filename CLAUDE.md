@@ -57,8 +57,8 @@ streams every fund** (one partition per fund). Mechanics:
 ## Holdings/NAV are `.xlsx` — the one extra dependency
 
 SSGA's catalog is JSON, but holdings and NAV history are published **only as `.xlsx`** (no CSV/JSON
-— the `.csv` path 404s). So the worker adds [SheetJS `xlsx`](https://www.npmjs.com/package/xlsx)
-(`0.18.5`), a PURE parser (no network) — allowed in the driver layer. `readXlsxMatrix(bytes)` (the
+— the `.csv` path 404s). So the worker adds [SheetJS `xlsx`](https://docs.sheetjs.com/docs/getting-started/installation/nodejs)
+(`0.20.3`, from the SheetJS CDN — npm stops at the vulnerable 0.18.5), a PURE parser (no network) — allowed in the driver layer. `readXlsxMatrix(bytes)` (the
 ONLY XLSX touch) decodes a byte buffer into a row matrix via `XLSX.utils.sheet_to_json(ws,
 {header:1})`; every other parser takes a plain matrix so the unit tests drive them without any
 xlsx (a couple round-trip a SheetJS-built buffer through `readXlsxMatrix`).
