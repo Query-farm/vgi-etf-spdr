@@ -1,0 +1,33 @@
+# Private grader sidecar for `vgi-lint simulate` (and `lint`'s VGI520 coverage). The worker
+# publishes only task names + prompts in `vgi.agent_test_tasks` (src/catalog.ts); these
+# grader fields are keyed by that name and never sent to the analyst agent.
+#
+# Each task carries a deterministic check_sql that asserts specific ground truth;
+# reference_sql is deliberately omitted (live data). One task per callable surface
+# (products, holdings, nav_history) satisfies VGI520.
+tasks:
+  - name: spy_exists
+    check_sql: >-
+      SELECT count(*) > 0 FROM spdr.main.products WHERE ticker = 'SPY'
+    success_criteria: >-
+      The answer confirms SPY is the SPDR S&P 500 ETF Trust, found via the products table.
+  - name: spy_expense_ratio
+    check_sql: >-
+      SELECT count(*) > 0 FROM spdr.main.products WHERE ticker = 'SPY' AND expense_ratio_percent IS NOT NULL
+    success_criteria: >-
+      The answer reports SPY's gross expense ratio (a small percentage) from the products table.
+  - name: spy_top_holding
+    check_sql: >-
+      SELECT count(*) > 0 FROM spdr.main.holdings WHERE fund_ticker = 'SPY'
+    success_criteria: >-
+      The answer names SPY's top holding by weight, obtained from the holdings table.
+  - name: spy_bil_position_counts
+    check_sql: >-
+      SELECT (SELECT count(*) FROM spdr.main.holdings WHERE fund_ticker = 'SPY') > (SELECT count(*) FROM spdr.main.holdings WHERE fund_ticker = 'BIL')
+    success_criteria: >-
+      The answer reports SPY's holding count and correctly states SPY holds more positions than BIL, using the holdings table filtered by fund_ticker.
+  - name: spy_recent_nav
+    check_sql: >-
+      SELECT count(*) > 0 FROM spdr.main.nav_history('SPY') WHERE nav > 0
+    success_criteria: >-
+      The answer reports a recent SPY NAV per share, obtained from the nav_history function.

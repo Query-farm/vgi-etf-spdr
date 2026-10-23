@@ -181,39 +181,29 @@ const CATALOG_TAGS: Record<string, string> = {
       sql: "SELECT name, ticker, weight_percent FROM spdr.main.holdings WHERE fund_ticker = 'SPY' ORDER BY weight_percent DESC LIMIT 5",
     },
   ]),
-  // Agent-suitability suite (catalog only). Each task carries a deterministic check_sql that
-  // asserts specific ground truth; reference_sql is deliberately omitted (live data). One task
-  // per callable surface (products, holdings, nav_history) satisfies VGI520.
+  // Agent-suitability suite (catalog only). Only each task's name + prompt is published
+  // here (VGI416); the grader fields live in the private sidecar vgi-agent-tests.yaml,
+  // keyed by task name, and are never shown to the analyst.
   "vgi.agent_test_tasks": JSON.stringify([
     {
       name: "spy_exists",
       prompt: "Does SPDR offer an ETF with the ticker SPY, and what is it called?",
-      check_sql: "SELECT count(*) > 0 FROM spdr.main.products WHERE ticker = 'SPY'",
-      success_criteria: "The answer confirms SPY is the SPDR S&P 500 ETF Trust, found via the products table.",
     },
     {
       name: "spy_expense_ratio",
       prompt: "What is the expense ratio of the SPDR S&P 500 ETF Trust (SPY)?",
-      check_sql: "SELECT count(*) > 0 FROM spdr.main.products WHERE ticker = 'SPY' AND expense_ratio_percent IS NOT NULL",
-      success_criteria: "The answer reports SPY's gross expense ratio (a small percentage) from the products table.",
     },
     {
       name: "spy_top_holding",
       prompt: "What is the single largest holding of the SPDR S&P 500 ETF Trust (SPY) right now?",
-      check_sql: "SELECT count(*) > 0 FROM spdr.main.holdings WHERE fund_ticker = 'SPY'",
-      success_criteria: "The answer names SPY's top holding by weight, obtained from the holdings table.",
     },
     {
       name: "spy_bil_position_counts",
       prompt: "How many distinct holdings does the SPDR S&P 500 ETF Trust (SPY) currently have, and does it hold more positions than the SPDR Bloomberg 1-3 Month T-Bill ETF (BIL)?",
-      check_sql: "SELECT (SELECT count(*) FROM spdr.main.holdings WHERE fund_ticker = 'SPY') > (SELECT count(*) FROM spdr.main.holdings WHERE fund_ticker = 'BIL')",
-      success_criteria: "The answer reports SPY's holding count and correctly states SPY holds more positions than BIL, using the holdings table filtered by fund_ticker.",
     },
     {
       name: "spy_recent_nav",
       prompt: "What was the SPDR S&P 500 ETF Trust's (SPY) net asset value on its most recent valuation date?",
-      check_sql: "SELECT count(*) > 0 FROM spdr.main.nav_history('SPY') WHERE nav > 0",
-      success_criteria: "The answer reports a recent SPY NAV per share, obtained from the nav_history function.",
     },
   ]),
 };

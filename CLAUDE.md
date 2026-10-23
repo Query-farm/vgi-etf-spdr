@@ -167,7 +167,7 @@ Typecheck must be a `bash scripts/typecheck.sh` file (not an inline package.json
   functions (VGI173); numeric column comments should state units (VGI131 — e.g. "per share in
   USD", "percent points"); argument docs must NOT restate the data type (VGI313); every function
   needs an agent test task (VGI520 — products/holdings/nav_history are covered in
-  `catalog.ts` `vgi.agent_test_tasks`); every listed function/table needs a primary key (VGI807 —
+  `catalog.ts` `vgi.agent_test_tasks`; their graders live in `vgi-agent-tests.yaml`, VGI416); every listed function/table needs a primary key (VGI807 —
   products keyed by `isin`, holdings by the composite `(fund_ticker, name)`).
 - Don't add a secret type; this worker is keyless by design.
 - Keep the `holdings` current-only contract: do NOT add `supportsTimeTravel` or an as-of arg.
