@@ -15,7 +15,7 @@ SET search_path='sp.main';
 query T
 SELECT string_agg(column_name, ',') FROM (DESCRIBE SELECT * FROM sp.holdings WHERE fund_ticker = 'SPY');
 ----
-fund_ticker,as_of_date,name,ticker,identifier,sedol,figi,weight_percent,sector,shares_held,coupon_percent,par_value,market_value,maturity_date,local_currency
+fund_ticker,holding_rank,as_of_date,name,ticker,identifier,sedol,figi,weight_percent,sector,shares_held,coupon_percent,par_value,market_value,maturity_date,local_currency
 
 query T
 SELECT column_type FROM (DESCRIBE SELECT * FROM sp.holdings WHERE fund_ticker = 'SPY') WHERE column_name = 'as_of_date';

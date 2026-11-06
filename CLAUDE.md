@@ -48,9 +48,9 @@ streams every fund** (one partition per fund). Mechanics:
 - **`fund_ticker` is a SEPARATE column from `ticker`** — `ticker` is the CONSTITUENT's own ticker
   (present for equity funds, null for bond/loan funds); `fund_ticker` is the fund's ticker,
   constant per fund. The scan tags every row with the requested fund ticker, upper-cased.
-- Constraints: `products` advisory PK `[isin]`; `holdings` advisory composite PK
-  `[fund_ticker, name]` with `notNull [fund_ticker, name]` (a constituent is identified by its fund
-  plus its name; both are always populated). No cross-table FK (identifier columns recur with
+- Constraints (vgi.v3 serves them as ENFORCED canonical records (`constraintRecord`), so each must hold for every scanned row): `products` PK `[ticker]` (the scan drops ticker-less/repeated
+  entries; isin isn't always parsed); `holdings` PK `[fund_ticker, holding_rank]` (1-based per-fund
+  ordinal — a name repeats within bond funds) plus NOT NULL `fund_ticker` and `name` (both always populated). No cross-table FK (identifier columns recur with
   different meanings). No `vgi-lint.toml` rule waivers — VGI311 is met by naming the listed scan
   `holdings` (matching the table), VGI807 by the composite PK.
 
@@ -168,7 +168,7 @@ Typecheck must be a `bash scripts/typecheck.sh` file (not an inline package.json
   USD", "percent points"); argument docs must NOT restate the data type (VGI313); every function
   needs an agent test task (VGI520 — products/holdings/nav_history are covered in
   `catalog.ts` `vgi.agent_test_tasks`; their graders live in `vgi-agent-tests.yaml`, VGI416); every listed function/table needs a primary key (VGI807 —
-  products keyed by `isin`, holdings by the composite `(fund_ticker, name)`).
+  products keyed by `ticker`, holdings by the composite `(fund_ticker, holding_rank)`).
 - Don't add a secret type; this worker is keyless by design.
 - Keep the `holdings` current-only contract: do NOT add `supportsTimeTravel` or an as-of arg.
 
