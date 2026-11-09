@@ -155,6 +155,7 @@ const HOLDINGS_TABLE_TAGS: Record<string, string> = {
 /** Catalog-level tags: docs, discovery, provenance, and the agent-test suite. */
 const CATALOG_TAGS: Record<string, string> = {
   "vgi.title": "SPDR ETFs",
+  "vgi.subtitle": "State Street SPDR ETF facts, current holdings and daily NAV history from the public SSGA feed.",
   "vgi.doc_llm":
     "SPDR / State Street (SSGA) US ETF data as SQL tables and a table function. Reach for it to " +
     "screen the ETF lineup on key facts (net assets, expense ratio, returns), to inspect what a " +
