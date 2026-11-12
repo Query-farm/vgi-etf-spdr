@@ -1,6 +1,6 @@
 {
   "name": "vgi-etf-spdr",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "main": "src/worker.ts",
   "license": "MIT",
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@query-farm/apache-arrow": "^21.1.1",
-    "@query-farm/vgi": "^0.49.1",
+    "@query-farm/vgi": "^0.50.0",
     "@query-farm/vgi-rpc": "^0.29.7",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },

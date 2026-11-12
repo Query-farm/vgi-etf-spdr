@@ -22,7 +22,7 @@ const { registry, catalogInterface } = makeWorkerParts();
 serveVgiWorker({
   name: "spdr",
   doc: "SPDR / State Street (SSGA) US ETF data: product catalog, current holdings, and daily NAV history.",
-  version: "0.3.0",
+  version: "0.4.0",
   repositoryUrl: "https://github.com/Query-farm/vgi-etf-spdr",
   serverId: "vgi-etf-spdr",
   registry,
