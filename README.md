@@ -169,6 +169,28 @@ ORDER BY as_of_date DESC;
 This is **fund NAV**, not a market-price candle series. Old funds return thousands of rows —
 bound the range with `start_date`/`end_date` (inclusive SQL `DATE`s; omit for unbounded).
 
+### Combining them
+
+Screen the catalog, then drill into the funds it picks. The join pushes the selected tickers into
+the `holdings` scan, so only those funds' holdings files are fetched:
+
+```sql
+-- Largest single holding of each of the five biggest SPDR equity ETFs, sized in dollars:
+WITH biggest AS (
+    SELECT ticker, net_assets
+    FROM spdr.products
+    WHERE asset_class = 'Equity'
+    ORDER BY net_assets DESC
+    LIMIT 5
+)
+SELECT b.ticker AS fund, h.name AS top_holding, h.weight_percent,
+       round(b.net_assets * h.weight_percent / 100 / 1e9, 1) AS position_usd_billions
+FROM biggest b
+JOIN spdr.holdings h ON h.fund_ticker = b.ticker
+WHERE h.holding_rank = 1
+ORDER BY b.net_assets DESC;
+```
+
 ## Development
 
 ```bash

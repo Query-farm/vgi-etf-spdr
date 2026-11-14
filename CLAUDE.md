@@ -45,6 +45,9 @@ streams every fund** (one partition per fund). Mechanics:
 - **404-tolerant.** A fund with no holdings file throws in `getBytes`; `process()` catches and
   skips to the next fund so an all-funds scan never fails on one missing file.
 - **`filterPushdown: true`** + LISTED → the extension pushes the `fund_ticker` filter into the scan.
+  DuckDB then drops EVERY pushed predicate from its plan (not just fund_ticker), so the scan
+  sets `autoApplyFilters: true` to apply them to each emitted batch — without it `WHERE
+  holding_rank = 1` silently returned every row (regression test in `test/sql/holdings.test`).
 - **`fund_ticker` is a SEPARATE column from `ticker`** — `ticker` is the CONSTITUENT's own ticker
   (present for equity funds, null for bond/loan funds); `fund_ticker` is the fund's ticker,
   constant per fund. The scan tags every row with the requested fund ticker, upper-cased.
@@ -96,6 +99,8 @@ sorts by `weight_percent` DESC (NULLS last) so `... LIMIT n` returns the top hol
   backing scan), `makeHoldingsScan` (named `holdings`, LISTED, filterPushdown, SINGLE_VALUE
   partitions, queue/BoundStorage streaming), and `makeNavHistoryFunction`. Each `make*` takes the
   whole `SpdrClient` (`{get, getBytes}`) for uniformity.
+- **`src/examples.ts`** — composed example queries (products × holdings × nav_history), defined
+  once and referenced from the schema list and each driving object's example list.
 - **`src/catalog.ts` / `src/worker.ts`** — catalog descriptor (no `secretTypes`) and the entry
   that wires the real client into the functions.
 

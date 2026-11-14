@@ -2,8 +2,9 @@
 # publishes only task names + prompts in `vgi.agent_test_tasks` (src/catalog.ts); these
 # grader fields are keyed by that name and never sent to the analyst agent.
 #
-# Each task carries a deterministic check_sql that asserts specific ground truth;
-# reference_sql is deliberately omitted (live data). One task per callable surface
+# Single-object tasks carry a deterministic check_sql that asserts specific ground truth;
+# reference_sql is deliberately omitted (live data). The composed task
+# (largest_bond_funds_avg_coupon) is graded by success_criteria instead — see its note. One task per callable surface
 # (products, holdings, nav_history) satisfies VGI520.
 tasks:
   - name: spy_exists
@@ -31,3 +32,16 @@ tasks:
       SELECT count(*) > 0 FROM spdr.main.nav_history('SPY') WHERE nav > 0
     success_criteria: >-
       The answer reports a recent SPY NAV per share, obtained from the nav_history function.
+  - name: largest_bond_funds_avg_coupon
+    # Live data, so no reference_sql; and no check_sql either — a post-session assertion here
+    # could only re-check the source data and would pass whatever the analyst answered. The
+    # judge sees the analyst's result and can fail a wrong method or an inconsistent answer.
+    success_criteria: >-
+      The answer combines the products table and the holdings table. It picks the three funds
+      with asset_class = 'Fixed Income' and the largest net_assets (the result should list exactly
+      three tickers, each a fixed-income fund). For each it reports a weight-averaged coupon
+      computed from holdings.coupon_percent weighted by holdings.weight_percent, i.e.
+      sum(weight_percent * coupon_percent) / sum(weight_percent) over holdings with a coupon — a
+      plain average of coupons, a sum, or an unweighted figure fails. Values are in percent points
+      (a T-bill fund is near 0; a high-yield fund is several percent). The fund named as highest
+      must be the one with the largest weighted-average coupon among the three values shown.

@@ -49,3 +49,23 @@ query I
 SELECT (count(*) > 100)::INT FROM sp.holdings() WHERE fund_ticker = 'SPY';
 ----
 1
+
+# Non-partition predicates are pushed into the scan too, and DuckDB drops them from its own
+# plan — so the scan must apply them (regression: holding_rank = 1 used to return every row).
+query I
+SELECT (count(*) = 2 AND bool_and(holding_rank = 1))::INT FROM sp.holdings WHERE fund_ticker IN ('SPY', 'BIL') AND holding_rank = 1;
+----
+1
+
+query I
+SELECT (count(*) > 0 AND bool_and(weight_percent > 3))::INT FROM sp.holdings WHERE fund_ticker = 'SPY' AND weight_percent > 3;
+----
+1
+
+# Composed: products picks the funds, the join pushes their tickers into the holdings scan.
+query I
+WITH biggest AS (SELECT ticker FROM sp.products WHERE asset_class = 'Equity' ORDER BY net_assets DESC LIMIT 5)
+SELECT (count(*) = 5 AND count(DISTINCT h.fund_ticker) = 5)::INT
+FROM biggest b JOIN sp.holdings h ON h.fund_ticker = b.ticker WHERE h.holding_rank = 1;
+----
+1

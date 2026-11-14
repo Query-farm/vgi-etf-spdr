@@ -9,6 +9,7 @@
 import type { CatalogDescriptor, VgiFunction } from "@query-farm/vgi";
 import { Arguments, constraintRecord } from "@query-farm/vgi";
 import { productsSchema, holdingsSchema, resultColumnsSchema } from "./schema.js";
+import { BIGGEST_EQUITY_FUNDS_TOP_HOLDING, COMPOSED_EXAMPLES, SPY_POSITION_DOLLARS } from "./examples.js";
 
 // vgi.v3 serves table constraints as canonical records that DuckDB takes as engine facts
 // (ENFORCED / ALL_ROWS only), so every record must hold for every row the scan emits. The
@@ -90,6 +91,7 @@ const PRODUCTS_TABLE_TAGS: Record<string, string> = {
     { description: "Ten largest SPDR ETFs by net assets", sql: "SELECT ticker, fund_name, net_assets FROM spdr.main.products ORDER BY net_assets DESC LIMIT 10" },
     { description: "Cheapest equity ETFs by expense ratio", sql: "SELECT ticker, fund_name, expense_ratio_percent FROM spdr.main.products WHERE asset_class = 'Equity' ORDER BY expense_ratio_percent LIMIT 10" },
     { description: "Look up a single fund by ticker", sql: "SELECT ticker, fund_name, expense_ratio_percent FROM spdr.main.products WHERE ticker = 'SPY'" },
+    BIGGEST_EQUITY_FUNDS_TOP_HOLDING,
   ]),
   "vgi.result_columns_schema": resultColumnsSchema(productsSchema(), PRODUCTS_COLUMN_COMMENTS),
 };
@@ -149,6 +151,7 @@ const HOLDINGS_TABLE_TAGS: Record<string, string> = {
     { description: "Top 10 current holdings of SPY", sql: "SELECT name, ticker, weight_percent FROM spdr.main.holdings WHERE fund_ticker = 'SPY' ORDER BY weight_percent DESC LIMIT 10" },
     { description: "A bond fund fills coupon / maturity / par value", sql: "SELECT name, coupon_percent, maturity_date, par_value FROM spdr.main.holdings WHERE fund_ticker = 'BIL' ORDER BY weight_percent DESC LIMIT 10" },
     { description: "Two funds at once (partition fan-out)", sql: "SELECT fund_ticker, name, weight_percent FROM spdr.main.holdings WHERE fund_ticker IN ('SPY', 'BIL')" },
+    SPY_POSITION_DOLLARS,
   ]),
 };
 
@@ -225,6 +228,10 @@ const CATALOG_TAGS: Record<string, string> = {
       name: "spy_recent_nav",
       prompt: "What was the SPDR S&P 500 ETF Trust's (SPY) net asset value on its most recent valuation date?",
     },
+    {
+      name: "largest_bond_funds_avg_coupon",
+      prompt: "Take the three largest SPDR fixed-income ETFs by net assets. For each, what is the weight-averaged coupon of its current holdings (each holding's coupon weighted by its portfolio weight), and which of the three has the highest?",
+    },
   ]),
 };
 
@@ -254,6 +261,7 @@ const SCHEMA_TAGS: Record<string, string> = {
     { description: "Ten largest SPDR ETFs by net assets", sql: "SELECT ticker, fund_name, net_assets FROM spdr.main.products ORDER BY net_assets DESC LIMIT 10" },
     { description: "Top holdings of SPY", sql: "SELECT name, ticker, weight_percent FROM spdr.main.holdings WHERE fund_ticker = 'SPY' ORDER BY weight_percent DESC LIMIT 10" },
     { description: "Recent daily NAV history for SPY", sql: "SELECT as_of_date, nav FROM spdr.main.nav_history('SPY', start_date := DATE '2026-01-01') ORDER BY as_of_date DESC" },
+    ...COMPOSED_EXAMPLES,
   ]),
 };
 

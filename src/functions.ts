@@ -31,6 +31,7 @@ import {
   resultColumnsSchema,
 } from "./schema.js";
 import type { SpdrClient } from "./client.js";
+import { SPY_NAV_VS_REPORTED_YTD, SPY_POSITION_DOLLARS } from "./examples.js";
 
 // Per-column descriptions for the `vgi.result_columns_schema` tag (JSON [{name,type,description}],
 // generated from each Arrow schema via resultColumnsSchema).
@@ -179,6 +180,10 @@ export function makeHoldingsScan(client: SpdrClient) {
     // filter vanishes from the plan and every query streams all ~180 funds). Each fund is one
     // SINGLE_VALUE partition (fund_ticker is the hive partition key).
     filterPushdown: true,
+    // DuckDB drops every pushed predicate from its own plan, so the scan must apply them all:
+    // fund_ticker only picks the partitions to fetch, and any other pushed filter (holding_rank = 1,
+    // weight_percent > 5, ...) would otherwise be silently ignored and return every row.
+    autoApplyFilters: true,
     partitionKind: "SINGLE_VALUE_PARTITIONS",
     maxWorkers: DEFAULT_MAX_WORKERS,
     onBind: () => ({ outputSchema: schema }),
@@ -230,6 +235,7 @@ export function makeHoldingsScan(client: SpdrClient) {
     examples: [
       { sql: "SELECT name, ticker, weight_percent FROM spdr.main.holdings WHERE fund_ticker = 'SPY' ORDER BY weight_percent DESC LIMIT 10", description: "Top 10 holdings of SPY by weight" },
       { sql: "SELECT fund_ticker, count(*) AS positions, round(sum(weight_percent), 2) AS total_weight FROM spdr.main.holdings WHERE fund_ticker IN ('SPY', 'BIL') GROUP BY fund_ticker ORDER BY positions DESC", description: "Position count and summed weight for two funds (partition fan-out)" },
+      SPY_POSITION_DOLLARS,
     ],
     tags: {
       "vgi.category": "holdings",
@@ -254,6 +260,7 @@ export function makeHoldingsScan(client: SpdrClient) {
       "vgi.example_queries": JSON.stringify([
         { description: "Top 10 holdings of SPY by weight", sql: "SELECT name, ticker, weight_percent FROM spdr.main.holdings WHERE fund_ticker = 'SPY' ORDER BY weight_percent DESC LIMIT 10" },
         { description: "Position count and summed weight for two funds (partition fan-out)", sql: "SELECT fund_ticker, count(*) AS positions, round(sum(weight_percent), 2) AS total_weight FROM spdr.main.holdings WHERE fund_ticker IN ('SPY', 'BIL') GROUP BY fund_ticker ORDER BY positions DESC" },
+        SPY_POSITION_DOLLARS,
       ]),
       "vgi.result_columns_schema": resultColumnsSchema(holdingsSchema(), HOLDINGS_SCAN_DESCS),
     },
@@ -313,6 +320,7 @@ export function makeNavHistoryFunction(client: SpdrClient) {
     examples: [
       { sql: "SELECT as_of_date, nav FROM spdr.main.nav_history('SPY', start_date := DATE '2026-01-01') ORDER BY as_of_date DESC", description: "SPY NAV since the start of the year" },
       { sql: "SELECT as_of_date, total_net_assets FROM spdr.main.nav_history('SPY') ORDER BY as_of_date DESC LIMIT 5", description: "Recent daily total net assets for SPY" },
+      SPY_NAV_VS_REPORTED_YTD,
     ],
     tags: {
       "vgi.category": "history",
@@ -331,6 +339,7 @@ export function makeNavHistoryFunction(client: SpdrClient) {
       "vgi.example_queries": JSON.stringify([
         { description: "SPY NAV since the start of the year", sql: "SELECT as_of_date, nav FROM spdr.main.nav_history('SPY', start_date := DATE '2026-01-01') ORDER BY as_of_date DESC" },
         { description: "Recent daily total net assets for SPY", sql: "SELECT as_of_date, total_net_assets FROM spdr.main.nav_history('SPY') ORDER BY as_of_date DESC LIMIT 5" },
+        SPY_NAV_VS_REPORTED_YTD,
       ]),
       "vgi.result_columns_schema": resultColumnsSchema(navHistorySchema(), NAV_HISTORY_DESCS),
     },
