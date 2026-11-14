@@ -254,3 +254,7 @@ with or endorsed by State Street / SPDR.
 ## License
 
 MIT — Copyright 2026 Query Farm LLC · https://query.farm
+
+## Notebooks
+
+[Executed NAV and fund-assets walkthrough](notebooks/README.md) reconciles SPY historical data and tests a different comparison baseline.
