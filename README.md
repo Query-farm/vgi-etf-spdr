@@ -171,8 +171,10 @@ bound the range with `start_date`/`end_date` (inclusive SQL `DATE`s; omit for un
 
 ### Combining them
 
-Screen the catalog, then drill into the funds it picks. The join pushes the selected tickers into
-the `holdings` scan, so only those funds' holdings files are fetched:
+Screen the catalog, then drill into the funds it picks. A join key is not pushed into the
+`holdings` scan (it still reads every fund's file, ~10 s), but `holding_rank = 1` is applied
+inside it, so only one row per fund reaches the join. For a few known funds, filter
+`fund_ticker` with literals instead:
 
 ```sql
 -- Largest single holding of each of the five biggest SPDR equity ETFs, sized in dollars:

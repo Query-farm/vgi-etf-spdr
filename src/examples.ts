@@ -24,8 +24,8 @@ export const SPY_POSITION_DOLLARS: ExampleQuery = {
 export const BIGGEST_EQUITY_FUNDS_TOP_HOLDING: ExampleQuery = {
   description:
     "Largest single holding of each of the five biggest SPDR equity ETFs, with its weight and " +
-    "approximate dollar size (the catalog picks the funds; the join pushes their tickers into " +
-    "the holdings scan, so only those five funds are fetched)",
+    "approximate dollar size (the catalog picks the funds; holding_rank = 1 is applied inside the " +
+    "holdings scan, which still reads every fund's file because the join key is not pushed down)",
   sql:
     "WITH biggest AS (SELECT ticker, net_assets FROM spdr.main.products WHERE asset_class = 'Equity' " +
     "ORDER BY net_assets DESC LIMIT 5) " +
@@ -38,15 +38,17 @@ export const BIGGEST_EQUITY_FUNDS_TOP_HOLDING: ExampleQuery = {
 /** nav_history × products: price-only NAV change vs SSGA's reported YTD total return. */
 export const SPY_NAV_VS_REPORTED_YTD: ExampleQuery = {
   description:
-    "SPY's price-only NAV change from the 2025 year-end NAV to SSGA's latest performance date, " +
-    "next to the YTD total return the catalog reports for that date (the gap reflects " +
-    "distributions, which a NAV-per-share series excludes)",
+    "SPY's price-only NAV change from the prior year-end NAV (base_nav_date) to SSGA's latest " +
+    "performance date, next to the YTD total return the catalog reports for that date (the gap " +
+    "reflects distributions, which a NAV-per-share series excludes)",
   sql:
     "WITH p AS (SELECT ticker, performance_as_of, ytd_return_percent FROM spdr.main.products " +
     "WHERE ticker = 'SPY'), " +
-    "n AS (SELECT as_of_date, nav FROM spdr.main.nav_history('SPY', start_date := DATE '2025-12-31')) " +
+    "n AS (SELECT as_of_date, nav FROM spdr.main.nav_history('SPY', start_date := current_date - 500)) " +
     "SELECT p.ticker, p.performance_as_of, " +
-    "round(100 * (arg_max(n.nav, n.as_of_date) / arg_min(n.nav, n.as_of_date) - 1), 2) AS nav_change_percent, " +
+    "max(n.as_of_date) FILTER (WHERE n.as_of_date < date_trunc('year', p.performance_as_of)) AS base_nav_date, " +
+    "round(100 * (arg_max(n.nav, n.as_of_date) / arg_max(n.nav, n.as_of_date) " +
+    "FILTER (WHERE n.as_of_date < date_trunc('year', p.performance_as_of)) - 1), 2) AS nav_change_percent, " +
     "p.ytd_return_percent " +
     "FROM p JOIN n ON n.as_of_date <= p.performance_as_of " +
     "GROUP BY p.ticker, p.performance_as_of, p.ytd_return_percent ORDER BY p.ticker",

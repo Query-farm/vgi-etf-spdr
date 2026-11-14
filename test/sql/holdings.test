@@ -62,7 +62,8 @@ SELECT (count(*) > 0 AND bool_and(weight_percent > 3))::INT FROM sp.holdings WHE
 ----
 1
 
-# Composed: products picks the funds, the join pushes their tickers into the holdings scan.
+# Composed: products picks the funds and the join keeps their top holdings (the join key is not
+# pushed down, so the scan reads every fund; holding_rank = 1 is applied inside the scan).
 query I
 WITH biggest AS (SELECT ticker FROM sp.products WHERE asset_class = 'Equity' ORDER BY net_assets DESC LIMIT 5)
 SELECT (count(*) = 5 AND count(DISTINCT h.fund_ticker) = 5)::INT
