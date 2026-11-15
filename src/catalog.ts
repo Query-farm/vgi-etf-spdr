@@ -165,13 +165,18 @@ const CATALOG_TAGS: Record<string, string> = {
     "fund currently holds, and to pull a fund's daily NAV history. The central concept is the " +
     "fund, identified by its exchange ticker (e.g. SPY); start from the catalog to find that key, " +
     "then drill into a specific fund. Data is SSGA's public fund feed: best-effort, for " +
-    "informational use.",
+    "informational use." +
+    " Upstream source: https://www.ssga.com/us/en/intermediary/fund-finder.",
   "vgi.doc_md":
     "## SPDR ETFs\n\n" +
     "SPDR / State Street (SSGA) US ETF data, exposed as DuckDB tables and a table function.\n\n" +
     "The **fund** is the unit of the data and is keyed by an exchange `ticker` (e.g. `SPY`) — " +
     "begin at the catalog to discover that key, then drill into a fund's holdings or NAV history. " +
     "Holdings are the current published portfolio (SSGA does not publish historical holdings).\n\n" +
+    "### Sources\n\n" +
+    "- [State Street fund finder](https://www.ssga.com/us/en/intermediary/fund-finder) — the SPDR ETF lineup the catalog is read from.\n" +
+    "- [State Street terms and conditions](https://www.ssga.com/us/en/footer/terms-and-conditions) — terms that govern use of the site's data.\n" +
+    "\n" +
     "Data is provided for informational use; review SSGA's terms before redistribution.",
   "vgi.keywords": JSON.stringify([
     "ETF",
