@@ -19,7 +19,7 @@ import { makeWorkerParts } from "../src/parts.js";
 
 const { registry, catalogInterface } = makeWorkerParts();
 
-serveVgiWorker({
+const server = serveVgiWorker({
   name: "spdr",
   doc: "SPDR / State Street (SSGA) US ETF data: product catalog, current holdings, and daily NAV history.",
   version: "0.4.1",
@@ -28,3 +28,7 @@ serveVgiWorker({
   registry,
   catalogInterface,
 });
+
+// bin/<worker> --http and ci/run-integration.sh read the bound port from this line
+// (PORT=0 binds any free port).
+console.log(`PORT:${server.port}`);
