@@ -36,7 +36,7 @@ Every [GitHub release](https://github.com/Query-farm/vgi-etf-spdr/releases) ship
 INSTALL vgi FROM community;
 LOAD vgi;
 
-ATTACH 'spdr' AS spdr (TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-etf-spdr@v0.4.1');
+ATTACH 'spdr' AS spdr (TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-etf-spdr@v0.4.2');
 
 -- The largest SPDR ETFs by net assets
 SELECT ticker, fund_name, net_assets FROM spdr.main.products ORDER BY net_assets DESC LIMIT 5;
@@ -45,7 +45,7 @@ SELECT ticker, fund_name, net_assets FROM spdr.main.products ORDER BY net_assets
 SELECT name, ticker, weight_percent FROM spdr.main.holdings WHERE fund_ticker = 'SPY' ORDER BY weight_percent DESC LIMIT 5;
 ```
 
-Prebuilt binaries cover macOS (Apple silicon), Linux (x86-64 and arm64). `github-auto://` needs an explicit release tag; change `@v0.4.1` to move to a newer release.
+Prebuilt binaries cover macOS (Apple silicon), Linux (x86-64 and arm64). `github-auto://` needs an explicit release tag; change `@v0.4.2` to move to a newer release.
 
 ### Other ways to run it
 
